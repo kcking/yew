@@ -2,6 +2,9 @@ use chumsky::prelude::*;
 use proc_macro::{TokenStream, TokenTree};
 use quote::quote;
 
+use crate::html;
+use crate::html_tree::HtmlTree;
+
 pub fn mdx(input: TokenStream) -> TokenStream {
     let parsed = input
         .into_iter()
@@ -26,11 +29,7 @@ pub fn mdx(input: TokenStream) -> TokenStream {
     // toks.extend(parsed.collect::<TokenStream>());
     // toks.extend("\"#".parse::<TokenStream>().unwrap());
     // dbg!(toks.into())
-    let s = format!("r#\"{}\"#", parsed);
-    quote! {
-        #s
-    }
-    .into()
+    parsed
 }
 
 fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
@@ -45,9 +44,10 @@ fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
             .ignore_then(expr.clone())
             .map(|t| Expr::Title(Box::new(t)));
 
-        //  old text that goes to end of line, doesn't play nice when embedded in other things like a link
-        // let text = take_until(text::newline()).map(|(s, _)| Expr::Text(s.into_iter().collect()));
-        // let text = take_until(text::newline()).map(|(s, _)| Expr::Text(s.into_iter().collect()));
+        //  old text that goes to end of line, doesn't play nice when embedded in other things like
+        // a link let text = take_until(text::newline()).map(|(s, _)|
+        // Expr::Text(s.into_iter().collect())); let text =
+        // take_until(text::newline()).map(|(s, _)| Expr::Text(s.into_iter().collect()));
         let operators = &['(', ')', '[', ']'];
         let newlines = &['\n', '\r'];
         let newline = filter(|c| newlines.contains(c));
@@ -85,20 +85,17 @@ impl Expr {
     fn eval(&self) -> TokenStream {
         match self {
             Expr::Title(t) => {
-                let title = format!("<h1>{}</h1>", t.eval().to_string());
-                quote! {#title}.into()
+                let t = t.eval();
+                // ["<h1>{".parse().unwrap(), t, "}</h1>".parse().unwrap()]
+                //     .into_iter()
+                //     .collect::<TokenStream>()
+                format!("<h1>{{{}}}</h1>", t).parse().unwrap()
             }
-            Expr::Text(t) => quote! {
-                #t
-            }
-            .into(),
+            Expr::Text(t) => format!("{{\"{}\"}}", t).parse().unwrap(),
             Expr::Link { text, url } => {
-                let text = text.eval().to_string();
-                quote! {
-                    <a href=#url>{#text}</a>
-                }
+                let text = text.eval();
+                format!("<a href=\"{url}\">{text}</a>").parse().unwrap()
             }
-            .into(),
             Expr::Exprs(exprs) => exprs.iter().map(Expr::eval).collect(),
             _ => quote! {}.into(),
         }
