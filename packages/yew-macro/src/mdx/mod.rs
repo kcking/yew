@@ -2,9 +2,6 @@ use chumsky::prelude::*;
 use proc_macro::{TokenStream, TokenTree};
 use quote::quote;
 
-use crate::html;
-use crate::html_tree::HtmlTree;
-
 pub fn mdx(input: TokenStream) -> TokenStream {
     let parsed = input
         .into_iter()
@@ -24,30 +21,16 @@ pub fn mdx(input: TokenStream) -> TokenStream {
         })
         .collect::<TokenStream>();
 
-    // let mut toks = TokenStream::default();
-    // toks.extend("r#\"".parse::<TokenStream>().unwrap());
-    // toks.extend(parsed.collect::<TokenStream>());
-    // toks.extend("\"#".parse::<TokenStream>().unwrap());
-    // dbg!(toks.into())
     parsed
 }
 
 fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
-    // let start = just('r')
-    //     .ignore_then(just('#'))
-    //     .ignore_then(just('"'))
-    //     .padded()
-    //     .ignored();
     let expr = recursive(|expr| {
         let title = just('#')
             .padded()
             .ignore_then(expr.clone())
             .map(|t| Expr::Title(Box::new(t)));
 
-        //  old text that goes to end of line, doesn't play nice when embedded in other things like
-        // a link let text = take_until(text::newline()).map(|(s, _)|
-        // Expr::Text(s.into_iter().collect())); let text =
-        // take_until(text::newline()).map(|(s, _)| Expr::Text(s.into_iter().collect()));
         let operators = &['(', ')', '[', ']'];
         let newlines = &['\n', '\r'];
         let newline = filter(|c| newlines.contains(c));
@@ -56,11 +39,6 @@ fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
             .at_least(1)
             .collect::<String>();
 
-        // let link_text = just('[').ignore_then(expr.clone()).then_ignore(just(']'));
-        // let link_url = just('(')
-        //     .ignore_then(filter(|c| *c != ')').repeated())
-        //     .then_ignore(just(')'))
-        //     .collect::<String>();
         let link_text = expr.clone().delimited_by(just('['), just(']'));
         let link_url = text.delimited_by(just('('), just(')'));
 
@@ -74,23 +52,13 @@ fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
             .or(text.map(Expr::Text))
             .or(newline.map(|_| Expr::Newline))
     });
-    // start
-    //     .ignore_then(expr.repeated())
-    //     .map(Expr::Exprs)
-    //     .then_ignore(just("\"#"))
     expr.repeated().map(Expr::Exprs).then_ignore(end())
 }
 
 impl Expr {
     fn eval(&self) -> TokenStream {
         match self {
-            Expr::Title(t) => {
-                let t = t.eval();
-                // ["<h1>{".parse().unwrap(), t, "}</h1>".parse().unwrap()]
-                //     .into_iter()
-                //     .collect::<TokenStream>()
-                format!("<h1>{{{}}}</h1>", t).parse().unwrap()
-            }
+            Expr::Title(t) => format!("<h1>{{{}}}</h1>", t.eval()).parse().unwrap(),
             Expr::Text(t) => format!("{{\"{}\"}}", t).parse().unwrap(),
             Expr::Link { text, url } => {
                 let text = text.eval();
