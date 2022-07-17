@@ -14,8 +14,10 @@ pub fn mdx(input: TokenStream) -> TokenStream {
                     .strip_suffix("\"#")
                     .unwrap();
                 let parsed = parse_mdx().parse(mdx_str).unwrap();
-                dbg!(&parsed);
-                parsed.eval()
+                // dbg!(&parsed);
+                let evaled = parsed.eval_outer();
+                dbg!(&evaled.to_string());
+                evaled
             }
             _ => panic!("mdx! expected literal"),
         })
@@ -28,12 +30,13 @@ fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
     let expr = recursive(|expr| {
         let title = just('#')
             .padded()
-            .ignore_then(expr.clone())
-            .map(|t| Expr::Title(Box::new(t)));
+            .ignore_then(expr.clone().repeated())
+            .then_ignore(text::newline().or(end()))
+            .map(|t| Expr::Title(Box::new(Expr::from_list(t))));
 
         let operators = &['(', ')', '[', ']'];
         let newlines = &['\n', '\r'];
-        let newline = filter(|c| newlines.contains(c));
+        // let newline = filter(|c| newlines.contains(c));
         let text = filter(|c| !operators.contains(c) && !newlines.contains(c))
             .repeated()
             .at_least(1)
@@ -47,26 +50,45 @@ fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
             url,
         });
 
-        title
-            .or(link)
-            .or(text.map(Expr::Text))
-            .or(newline.map(|_| Expr::Newline))
+        title.or(link).or(text.map(Expr::Text))
+        // .or(newline.map(|_| Expr::Newline))
     });
-    expr.repeated().map(Expr::Exprs).then_ignore(end())
+    expr.repeated().map(Expr::from_list).then_ignore(end())
 }
 
 impl Expr {
-    fn eval(&self) -> TokenStream {
+    fn eval_outer(&self) -> TokenStream {
         match self {
-            Expr::Title(t) => format!("<h1>{{{}}}</h1>", t.eval()).parse().unwrap(),
+            Expr::Exprs(_) => format!("<>{}</>", self.eval()).parse().unwrap(),
+            _ => self.eval(),
+        }
+    }
+
+    fn eval(&self) -> TokenStream {
+        let evaled: TokenStream = match self {
+            Expr::Title(t) => format!("<h1>{}</h1>", t.eval()).parse().unwrap(),
             Expr::Text(t) => format!("{{\"{}\"}}", t).parse().unwrap(),
             Expr::Link { text, url } => {
                 let text = text.eval();
                 format!("<a href=\"{url}\">{text}</a>").parse().unwrap()
             }
-            Expr::Exprs(exprs) => exprs.iter().map(Expr::eval).collect(),
+            Expr::Exprs(exprs) => {
+                format!("{}", exprs.iter().map(Expr::eval).collect::<TokenStream>())
+                    .parse()
+                    .unwrap()
+            }
             _ => quote! {}.into(),
+        };
+        dbg!(&evaled.to_string());
+        evaled
+    }
+
+    fn from_list(v: Vec<Self>) -> Self {
+        //  canonicalize single-item list into inner element
+        if v.len() == 1 {
+            return v.into_iter().next().unwrap();
         }
+        Expr::Exprs(v)
     }
 }
 

@@ -34,6 +34,33 @@ fn a() {
     )
 }
 
+#[test]
+fn nested() {
+    dbg_eq(
+        mdx! {
+            r#"# Wow a [link](google.com) in a title"#
+        },
+        html! {
+            <h1>{"Wow a "}<a href="google.com">{"link"}</a>{" in a title"}</h1>
+        },
+    )
+}
+
+#[test]
+fn multiple() {
+    dbg_eq(
+        mdx! {
+            r#"Some text [link](google.com)"#
+        },
+        html! {
+            <>
+            {"Some text "}
+            <a href="google.com">{"link"}</a>
+            </>
+        },
+    )
+}
+
 fn dbg_eq<T: std::fmt::Debug>(a: T, b: T) {
     assert_eq!(format!("{a:?}"), format!("{b:?}"));
 }
