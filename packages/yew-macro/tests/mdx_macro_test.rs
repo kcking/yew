@@ -61,6 +61,29 @@ fn multiple() {
     )
 }
 
+#[test]
+fn multiline_text() {
+    dbg_eq(
+        mdx! { r#"this is some text that
+        spans multiple lines"#
+        },
+        html! {"this is some text that
+        spans multiple lines"},
+    )
+}
+
+#[test]
+fn multiline_link() {
+    dbg_eq(
+        mdx! { r#"[this is a
+        multiline link wow](google.com)"#},
+        html! {
+            <a href="google.com">{"this is a
+        multiline link wow"}</a>
+        },
+    )
+}
+
 fn dbg_eq<T: std::fmt::Debug>(a: T, b: T) {
     assert_eq!(format!("{a:?}"), format!("{b:?}"));
 }

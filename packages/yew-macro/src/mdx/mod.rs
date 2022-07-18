@@ -27,21 +27,14 @@ pub fn mdx(input: TokenStream) -> TokenStream {
 }
 
 fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
+    let operators = &['(', ')', '[', ']'];
+
+    let text = filter(|c| !operators.contains(c))
+        .repeated()
+        .at_least(1)
+        .collect::<String>();
+
     let expr = recursive(|expr| {
-        let title = just('#')
-            .padded()
-            .ignore_then(expr.clone().repeated())
-            .then_ignore(text::newline().or(end()))
-            .map(|t| Expr::Title(Box::new(Expr::from_list(t))));
-
-        let operators = &['(', ')', '[', ']'];
-        let newlines = &['\n', '\r'];
-        // let newline = filter(|c| newlines.contains(c));
-        let text = filter(|c| !operators.contains(c) && !newlines.contains(c))
-            .repeated()
-            .at_least(1)
-            .collect::<String>();
-
         let link_text = expr.clone().delimited_by(just('['), just(']'));
         let link_url = text.delimited_by(just('('), just(')'));
 
@@ -50,10 +43,20 @@ fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
             url,
         });
 
-        title.or(link).or(text.map(Expr::Text))
-        // .or(newline.map(|_| Expr::Newline))
+        link.or(text.map(Expr::Text))
     });
-    expr.repeated().map(Expr::from_list).then_ignore(end())
+
+    let title = expr
+        .clone()
+        .repeated()
+        .delimited_by(just('#').padded(), text::newline().or(end()))
+        .map(|t| Expr::Title(Box::new(Expr::from_list(t))));
+
+    title
+        .or(expr)
+        .repeated()
+        .map(Expr::from_list)
+        .then_ignore(end())
 }
 
 impl Expr {
