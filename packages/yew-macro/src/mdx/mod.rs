@@ -16,7 +16,7 @@ pub fn mdx(input: TokenStream) -> TokenStream {
                 let parsed = parse_mdx().parse(mdx_str).unwrap();
                 // dbg!(&parsed);
                 let evaled = parsed.eval_outer();
-                dbg!(&evaled.to_string());
+                // dbg!(&evaled.to_string());
                 evaled
             }
             _ => panic!("mdx! expected literal"),
@@ -27,23 +27,29 @@ pub fn mdx(input: TokenStream) -> TokenStream {
 }
 
 fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
-    let operators = &['(', ')', '[', ']'];
+    let operators = &['(', ')', '[', ']', '`'];
 
     let text = filter(|c| !operators.contains(c))
         .repeated()
         .at_least(1)
         .collect::<String>();
 
+    //  TODO: make sure you can't nest links
     let expr = recursive(|expr| {
-        let link_text = expr.clone().delimited_by(just('['), just(']'));
+        let link_text = expr.clone().repeated().delimited_by(just('['), just(']'));
         let link_url = text.delimited_by(just('('), just(')'));
 
-        let link = link_text.then(link_url).map(|(text, url)| Expr::Link {
-            text: Box::new(text),
+        let link = link_text.then(link_url).map(|(content, url)| Expr::Link {
+            text: Box::new(Expr::from_list(content)),
             url,
         });
 
-        link.or(text.map(Expr::Text))
+        let code = expr
+            .clone()
+            .delimited_by(just('`'), just('`'))
+            .map(|c| Expr::Code(Box::new(c)));
+
+        link.or(code).or(text.map(Expr::Text))
     });
 
     let title = expr
@@ -70,6 +76,7 @@ impl Expr {
     fn eval(&self) -> TokenStream {
         let evaled: TokenStream = match self {
             Expr::Title(t) => format!("<h1>{}</h1>", t.eval()).parse().unwrap(),
+            Expr::Code(c) => format!("<code>{}</code>", c.eval()).parse().unwrap(),
             Expr::Text(t) => format!("{{\"{}\"}}", t).parse().unwrap(),
             Expr::Link { text, url } => {
                 let text = text.eval();
@@ -82,12 +89,13 @@ impl Expr {
             }
             _ => quote! {}.into(),
         };
-        dbg!(&evaled.to_string());
+        // dbg!(&evaled.to_string());
         evaled
     }
 
     fn from_list(v: Vec<Self>) -> Self {
-        //  canonicalize single-item list into inner element
+        //  canonicalize single-item list into inner element, mostly to help with testing against
+        // html!-generated dom trees
         if v.len() == 1 {
             return v.into_iter().next().unwrap();
         }
@@ -101,5 +109,6 @@ enum Expr {
     Text(String),
     Exprs(Vec<Expr>),
     Link { text: Box<Expr>, url: String },
+    Code(Box<Expr>),
     Newline,
 }

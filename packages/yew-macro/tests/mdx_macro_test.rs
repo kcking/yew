@@ -84,6 +84,34 @@ fn multiline_link() {
     )
 }
 
+#[test]
+fn basic_code() {
+    dbg_eq(
+        mdx! {r#"here is some `inline code` ooo"#},
+        html! {
+            <>
+            {"here is some "}<code>{"inline code"}</code>{" ooo"}
+            </>
+        },
+    );
+    dbg_eq(
+        mdx! {r#"# header `inline code` ooo"#},
+        html! {
+            <h1>
+                {"header "}<code>{"inline code"}</code>{" ooo"}
+            </h1>
+        },
+    );
+    dbg_eq(
+        mdx! {r#"# header [link `inline code`](google.com) ooo"#},
+        html! {
+            <h1>
+                {"header "}<a href="google.com">{"link "}<code>{"inline code"}</code></a>{" ooo"}
+            </h1>
+        },
+    );
+}
+
 fn dbg_eq<T: std::fmt::Debug>(a: T, b: T) {
     assert_eq!(format!("{a:?}"), format!("{b:?}"));
 }
