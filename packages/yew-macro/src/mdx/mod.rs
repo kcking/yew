@@ -1,6 +1,10 @@
+mod cmark;
+
 use chumsky::prelude::*;
 use proc_macro::{TokenStream, TokenTree};
 use quote::quote;
+
+use self::cmark::parse_commonmark;
 
 pub fn mdx(input: TokenStream) -> TokenStream {
     let parsed = input
@@ -13,11 +17,12 @@ pub fn mdx(input: TokenStream) -> TokenStream {
                     .unwrap()
                     .strip_suffix("\"#")
                     .unwrap();
-                let parsed = parse_mdx().parse(mdx_str).unwrap();
-                // dbg!(&parsed);
-                let evaled = parsed.eval_outer();
-                // dbg!(&evaled.to_string());
-                evaled
+                // let parsed = parse_mdx().parse(mdx_str).unwrap();
+                // // dbg!(&parsed);
+                // let evaled = parsed.eval_outer();
+                // // dbg!(&evaled.to_string());
+                // evaled
+                parse_commonmark(&mdx_str)
             }
             _ => panic!("mdx! expected literal"),
         })
@@ -27,6 +32,7 @@ pub fn mdx(input: TokenStream) -> TokenStream {
 }
 
 fn parse_mdx() -> impl Parser<char, Expr, Error = Simple<char>> {
+    // TODO: try with commonmark spec: https://spec.commonmark.org/0.30/#appendix-a-parsing-strategy
     let operators = &['(', ')', '[', ']', '`'];
 
     let text = filter(|c| !operators.contains(c))

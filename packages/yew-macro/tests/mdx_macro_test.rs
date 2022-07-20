@@ -6,7 +6,7 @@ fn text() {
         mdx! {
             r#"hi"#
         },
-        html! {{"hi"}}
+        html! {<p>{"hi"}</p>}
     );
 }
 
