@@ -112,6 +112,25 @@ fn basic_code() {
     );
 }
 
+#[test]
+fn list() {
+    dbg_eq(
+        mdx! {r#"
+- one
+- two
+- three
+"#},
+        html! {
+            <ul>
+            <li>{"one"}</li>
+            <li>{"two"}</li>
+            <li>{"three"}</li>
+            </ul>
+
+        },
+    )
+}
+
 fn dbg_eq<T: std::fmt::Debug>(a: T, b: T) {
     assert_eq!(format!("{a:?}"), format!("{b:?}"));
 }
