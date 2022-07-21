@@ -29,7 +29,7 @@ fn a() {
             r#"[this is a link](google.com)"#
         },
         html! {
-            <a href="google.com">{"this is a link"}</a>
+            <p><a href="google.com">{"this is a link"}</a></p>
         },
     )
 }
@@ -53,10 +53,10 @@ fn multiple() {
             r#"Some text [link](google.com)"#
         },
         html! {
-            <>
+            <p>
             {"Some text "}
             <a href="google.com">{"link"}</a>
-            </>
+            </p>
         },
     )
 }
@@ -67,8 +67,7 @@ fn multiline_text() {
         mdx! { r#"this is some text that
         spans multiple lines"#
         },
-        html! {"this is some text that
-        spans multiple lines"},
+        html! {<p>{"this is some text that"}{" "}{"spans multiple lines"}</p>},
     )
 }
 
@@ -78,8 +77,9 @@ fn multiline_link() {
         mdx! { r#"[this is a
         multiline link wow](google.com)"#},
         html! {
-            <a href="google.com">{"this is a
-        multiline link wow"}</a>
+            <p>
+            <a href="google.com">{"this is a"} {" "} {"multiline link wow"}</a>
+            </p>
         },
     )
 }
@@ -89,9 +89,9 @@ fn basic_code() {
     dbg_eq(
         mdx! {r#"here is some `inline code` ooo"#},
         html! {
-            <>
+            <p>
             {"here is some "}<code>{"inline code"}</code>{" ooo"}
-            </>
+            </p>
         },
     );
     dbg_eq(

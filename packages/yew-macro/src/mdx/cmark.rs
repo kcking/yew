@@ -18,7 +18,15 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
             }
             pulldown_cmark::Event::Start(Tag::Paragraph) => "<p>".parse().unwrap(),
             pulldown_cmark::Event::End(Tag::Paragraph) => "</p>".parse().unwrap(),
+            pulldown_cmark::Event::Start(Tag::Link(_type, url, _title)) => {
+                format!("<a href=\"{}\">", url).parse().unwrap()
+            }
+            pulldown_cmark::Event::End(Tag::Link(..)) => "</a>".parse().unwrap(),
             pulldown_cmark::Event::Text(txt) => format!("{{\"{}\"}}", txt).parse().unwrap(),
+            pulldown_cmark::Event::Code(code) => {
+                format!("<code>{{\"{}\"}}</code>", code).parse().unwrap()
+            }
+            pulldown_cmark::Event::SoftBreak => "{{\" \"}}".parse().unwrap(),
             _ => quote! {}.into(),
         };
         toks.extend(new_toks);
