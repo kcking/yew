@@ -25,6 +25,7 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
             Event::Text(txt) => format!("{{\"{}\"}}", txt).parse().unwrap(),
             Event::Code(code) => format!("<code>{{\"{}\"}}</code>", code).parse().unwrap(),
             Event::SoftBreak => "{{\" \"}}".parse().unwrap(),
+            Event::Html(html) => html.parse().unwrap(),
             _ => quote! {}.into(),
         };
         toks.extend(new_toks);

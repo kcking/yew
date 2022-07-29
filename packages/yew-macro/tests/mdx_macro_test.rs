@@ -1,4 +1,5 @@
-use yew_macro::{html, mdx};
+use yew::Html;
+use yew_macro::{function_component, html, mdx};
 
 #[test]
 fn text() {
@@ -131,6 +132,27 @@ fn list() {
     )
 }
 
+#[test]
+fn component() {
+    dbg_eq(
+        mdx! {r#"
+# <TestComponent />
+"#},
+        html! {
+            <h1>
+                <TestComponent />
+            </h1>
+        },
+    );
+}
+
 fn dbg_eq<T: std::fmt::Debug>(a: T, b: T) {
     assert_eq!(format!("{a:?}"), format!("{b:?}"));
+}
+
+#[function_component]
+fn TestComponent() -> Html {
+    html! {
+        <div class="test-component"></div>
+    }
 }
