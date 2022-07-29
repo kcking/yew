@@ -7,7 +7,7 @@ fn text() {
         mdx! {
             r#"hi"#
         },
-        html! {<p>{"hi"}</p>}
+        html! {<><p>{"hi"}</p></>}
     );
 }
 
@@ -18,7 +18,7 @@ fn h1() {
             r#"# hi"#
         },
         html! {
-            <h1>{"hi"}</h1>
+            <><h1>{"hi"}</h1></>
         },
     );
 }
@@ -30,7 +30,7 @@ fn a() {
             r#"[this is a link](google.com)"#
         },
         html! {
-            <p><a href="google.com">{"this is a link"}</a></p>
+            <><p><a href="google.com">{"this is a link"}</a></p></>
         },
     )
 }
@@ -42,7 +42,7 @@ fn nested() {
             r#"# Wow a [link](google.com) in a title"#
         },
         html! {
-            <h1>{"Wow a "}<a href="google.com">{"link"}</a>{" in a title"}</h1>
+            <><h1>{"Wow a "}<a href="google.com">{"link"}</a>{" in a title"}</h1></>
         },
     )
 }
@@ -54,10 +54,12 @@ fn multiple() {
             r#"Some text [link](google.com)"#
         },
         html! {
+            <>
             <p>
             {"Some text "}
             <a href="google.com">{"link"}</a>
             </p>
+            </>
         },
     )
 }
@@ -68,7 +70,7 @@ fn multiline_text() {
         mdx! { r#"this is some text that
         spans multiple lines"#
         },
-        html! {<p>{"this is some text that"}{" "}{"spans multiple lines"}</p>},
+        html! {<><p>{"this is some text that"}{" "}{"spans multiple lines"}</p></>},
     )
 }
 
@@ -78,9 +80,11 @@ fn multiline_link() {
         mdx! { r#"[this is a
         multiline link wow](google.com)"#},
         html! {
+            <>
             <p>
             <a href="google.com">{"this is a"} {" "} {"multiline link wow"}</a>
             </p>
+            </>
         },
     )
 }
@@ -90,25 +94,31 @@ fn basic_code() {
     dbg_eq(
         mdx! {r#"here is some `inline code` ooo"#},
         html! {
+            <>
             <p>
             {"here is some "}<code>{"inline code"}</code>{" ooo"}
             </p>
+            </>
         },
     );
     dbg_eq(
         mdx! {r#"# header `inline code` ooo"#},
         html! {
+            <>
             <h1>
                 {"header "}<code>{"inline code"}</code>{" ooo"}
             </h1>
+            </>
         },
     );
     dbg_eq(
         mdx! {r#"# header [link `inline code`](google.com) ooo"#},
         html! {
+            <>
             <h1>
                 {"header "}<a href="google.com">{"link "}<code>{"inline code"}</code></a>{" ooo"}
             </h1>
+            </>
         },
     );
 }
@@ -122,11 +132,13 @@ fn list() {
 - three
 "#},
         html! {
+            <>
             <ul>
             <li>{"one"}</li>
             <li>{"two"}</li>
             <li>{"three"}</li>
             </ul>
+            </>
 
         },
     )
@@ -139,9 +151,11 @@ fn component() {
 # <TestComponent />
 "#},
         html! {
+            <>
             <h1>
                 <TestComponent />
             </h1>
+            </>
         },
     );
 }
