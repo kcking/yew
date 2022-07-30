@@ -9,6 +9,7 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
     toks.extend::<TokenStream>("<>".parse().unwrap());
 
     parser.for_each(|evt| {
+        // dbg!(&evt);
         let new_toks: TokenStream = match evt {
             Event::Start(Tag::Heading(lvl, ..)) => format!("<{}>", lvl).parse().unwrap(),
             Event::End(Tag::Heading(lvl, ..)) => format!("</{}>", lvl).parse().unwrap(),
@@ -22,7 +23,7 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
             Event::End(Tag::List(_)) => "</ul>".parse().unwrap(),
             Event::Start(Tag::Item) => "<li>".parse().unwrap(),
             Event::End(Tag::Item) => "</li>".parse().unwrap(),
-            Event::Text(txt) => format!("{{\"{}\"}}", txt).parse().unwrap(),
+            Event::Text(txt) => format!("{{r###\"{}\"###}}", txt).parse().unwrap(),
             Event::Code(code) => format!("<code>{{\"{}\"}}</code>", code).parse().unwrap(),
             Event::SoftBreak => "{{\" \"}}".parse().unwrap(),
             Event::Html(html) => html.parse().unwrap(),
