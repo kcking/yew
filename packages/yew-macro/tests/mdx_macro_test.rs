@@ -160,6 +160,14 @@ fn component() {
     );
 }
 
+#[test]
+fn quotes_escaped() {
+    //  NOTE: if quotes aren't correctly esacped, this will panic as invalid
+    //  syntax because of
+    //  https://doc.rust-lang.org/edition-guide/rust-2021/reserving-syntax.html#summary
+    mdx!(r#"i "like"quotes"" """"#);
+}
+
 fn dbg_eq<T: std::fmt::Debug>(a: T, b: T) {
     assert_eq!(format!("{a:?}"), format!("{b:?}"));
 }
