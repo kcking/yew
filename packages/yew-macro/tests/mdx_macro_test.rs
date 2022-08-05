@@ -1,5 +1,11 @@
-use yew::Html;
-use yew_macro::{function_component, html, mdx};
+use yew::{Children, Html};
+use yew_macro::{function_component, html, mdx, Properties};
+
+lazy_static::lazy_static! {
+    static ref MDX_STYLE: std::collections::HashMap<&'static str, &'static str> = {
+        FromIterator::from_iter([("h3", "MyHeading3")].into_iter())
+    };
+}
 
 #[test]
 fn text() {
@@ -177,4 +183,29 @@ fn TestComponent() -> Html {
     html! {
         <div class="test-component"></div>
     }
+}
+
+#[derive(PartialEq, Properties)]
+pub struct MyHeading3Props {
+    pub children: Children,
+}
+#[function_component]
+fn MyHeading3(c: &MyHeading3Props) -> Html {
+    html! {
+        <h3>
+        <strong>
+        {c.children.clone()}
+        </strong>
+        </h3>
+    }
+}
+
+#[test]
+fn style_h3() {
+    dbg_eq(
+        mdx! {r#"### 123"#},
+        html! {
+            <><h3><strong>{"123"}</strong></h3></>
+        },
+    )
 }

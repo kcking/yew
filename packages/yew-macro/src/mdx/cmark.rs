@@ -1,7 +1,51 @@
+use std::collections::HashMap;
+
 use proc_macro::TokenStream;
 use proc_macro_error::ResultExt;
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use quote::quote;
+
+//  styling idea:
+//  caller passes in mapping of tag to yew component name
+//      caller can implement component however they want, it can take children
+//  instead of rendering <p> we render <SpecialP>
+//  problem: has to be specified at every call-site, and it's verbose because it has to be the input
+// to the proc macro
+//
+//  take 2: use yew dynamic tags to lookup in a named or global style array,
+//  including fallbacks to defaults. how to control whether style is applied at
+//  all? could have 2 different mdx macros, mdx/mdxs (global style) / mdxss
+//  (user-specified name of style map)
+//  Disadvantage: yew component name validation done at runtime
+//  instead of mapping to component name, could just map to Fn(children)-> Html
+//  dealbreaker?: do dynamic tags work with components anyways??
+
+//  map static tag to dynamic tag, falling back to the given tag
+#[derive(PartialEq)]
+enum Side {
+    Start,
+    End,
+}
+fn dyn_tag(tag: &str, side: Side) -> TokenStream {
+    let quoted_tag = "\"".to_string() + tag + "\"";
+    match side {
+        Side::Start => {
+            "<@{".to_string()
+                + &quote! {
+                    if MDX_STYLE.contains_key(#tag){
+                        MDX_STYLE.get(#tag).unwrap().clone()
+                    } else {
+                        #tag
+                    }
+                }
+                .to_string()
+                + "}>"
+        }
+        Side::End => "</@>".to_string(),
+    }
+    .parse()
+    .unwrap()
+}
 
 pub fn parse_commonmark(input: &str) -> TokenStream {
     let parser = Parser::new_ext(input, Options::all());
@@ -10,12 +54,10 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
     toks.extend::<TokenStream>("<>".parse().unwrap());
 
     parser.for_each(|evt| {
-        dbg!(&evt);
+        // dbg!(&evt);
         let new_toks: TokenStream = match evt {
-            Event::End(Tag::Heading(lvl, ..)) => format!("</{}>", lvl).parse().unwrap(),
-            Event::End(Tag::Paragraph) => "</p>".parse().unwrap(),
             Event::Start(tag) => match tag {
-                Tag::Paragraph => "<p>".parse().unwrap(),
+                Tag::Paragraph => dyn_tag("p", Side::Start),
                 Tag::Heading(lvl, ..) => format!("<{}>", lvl).parse().unwrap(),
                 Tag::BlockQuote => "<blockquote>".parse().unwrap(),
                 Tag::CodeBlock(kind) => match kind {
@@ -44,7 +86,7 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
                     .unwrap(),
             },
             Event::End(tag) => match tag {
-                Tag::Paragraph => "</p>".parse().unwrap(),
+                Tag::Paragraph => dyn_tag("p", Side::End),
                 Tag::Heading(lvl, ..) => format!("</{}>", lvl).parse().unwrap(),
                 Tag::BlockQuote => "</blockquote>".parse().unwrap(),
                 Tag::CodeBlock(_) => format!("</code></pre>").parse().unwrap(),
