@@ -1,12 +1,6 @@
 use yew::{Children, Html};
 use yew_macro::{function_component, html, mdx, mdx_style, Properties};
 
-lazy_static::lazy_static! {
-    static ref MDX_STYLE: std::collections::HashMap<&'static str, &'static str> = {
-        FromIterator::from_iter([("h3", "MyHeading3")].into_iter())
-    };
-}
-
 mdx_style!(h3: MyHeading3,);
 
 #[derive(Properties, PartialEq)]
