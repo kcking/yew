@@ -188,3 +188,8 @@ pub fn mdx(input: TokenStream) -> TokenStream {
     let mdx_tokens = mdx::mdx(input);
     html(mdx_tokens)
 }
+
+#[proc_macro]
+pub fn mdx_style(input: TokenStream) -> TokenStream {
+    mdx::mdx_style(input)
+}

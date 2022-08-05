@@ -5,6 +5,8 @@ use proc_macro_error::ResultExt;
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use quote::quote;
 
+use super::GLOBAL_STYLE;
+
 //  styling idea:
 //  caller passes in mapping of tag to yew component name
 //      caller can implement component however they want, it can take children
@@ -19,6 +21,10 @@ use quote::quote;
 //  Disadvantage: yew component name validation done at runtime
 //  instead of mapping to component name, could just map to Fn(children)-> Html
 //  dealbreaker?: do dynamic tags work with components anyways??
+//
+//  take2.5: just dont use dynamic tag?? -- but then we need the map specified at compile-time
+//
+//  take 3: separate mdx_style! macro to define styles
 
 //  map static tag to dynamic tag, falling back to the given tag
 #[derive(PartialEq)]
@@ -27,24 +33,19 @@ enum Side {
     End,
 }
 fn dyn_tag(tag: &str, side: Side) -> TokenStream {
-    let quoted_tag = "\"".to_string() + tag + "\"";
-    match side {
-        Side::Start => {
-            "<@{".to_string()
-                + &quote! {
-                    if MDX_STYLE.contains_key(#tag){
-                        MDX_STYLE.get(#tag).unwrap().clone()
-                    } else {
-                        #tag
-                    }
-                }
-                .to_string()
-                + "}>"
-        }
-        Side::End => "</@>".to_string(),
+    let tag = match GLOBAL_STYLE.lock().unwrap().get(tag.into()) {
+        Some(tag) => tag.clone(),
+        None => tag.into(),
+    };
+    (match side {
+        Side::Start => "<",
+        Side::End => "</",
     }
-    .parse()
-    .unwrap()
+    .to_string()
+        + &tag
+        + ">")
+        .parse()
+        .unwrap()
 }
 
 pub fn parse_commonmark(input: &str) -> TokenStream {
@@ -58,7 +59,7 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
         let new_toks: TokenStream = match evt {
             Event::Start(tag) => match tag {
                 Tag::Paragraph => dyn_tag("p", Side::Start),
-                Tag::Heading(lvl, ..) => format!("<{}>", lvl).parse().unwrap(),
+                Tag::Heading(lvl, ..) => dyn_tag(&lvl.to_string(), Side::Start),
                 Tag::BlockQuote => "<blockquote>".parse().unwrap(),
                 Tag::CodeBlock(kind) => match kind {
                     pulldown_cmark::CodeBlockKind::Indented => {
@@ -87,7 +88,7 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
             },
             Event::End(tag) => match tag {
                 Tag::Paragraph => dyn_tag("p", Side::End),
-                Tag::Heading(lvl, ..) => format!("</{}>", lvl).parse().unwrap(),
+                Tag::Heading(lvl, ..) => dyn_tag(&lvl.to_string(), Side::End),
                 Tag::BlockQuote => "</blockquote>".parse().unwrap(),
                 Tag::CodeBlock(_) => format!("</code></pre>").parse().unwrap(),
                 Tag::List(_) => "</ul>".parse().unwrap(),

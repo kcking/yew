@@ -1,8 +1,25 @@
 mod cmark;
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
 use proc_macro::{TokenStream, TokenTree};
 
 use self::cmark::parse_commonmark;
+
+lazy_static::lazy_static! {
+static ref GLOBAL_STYLE : Arc<Mutex<HashMap<String, String>>> = {
+    Default::default()
+};
+}
+
+pub fn mdx_style(input: TokenStream) -> TokenStream {
+    GLOBAL_STYLE
+        .lock()
+        .unwrap()
+        .insert("h3".into(), "MyHeading3".into());
+    quote::quote! {}.into()
+}
 
 pub fn mdx(input: TokenStream) -> TokenStream {
     let parsed = input

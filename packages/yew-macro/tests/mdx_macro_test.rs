@@ -1,10 +1,24 @@
 use yew::{Children, Html};
-use yew_macro::{function_component, html, mdx, Properties};
+use yew_macro::{function_component, html, mdx, mdx_style, Properties};
 
 lazy_static::lazy_static! {
     static ref MDX_STYLE: std::collections::HashMap<&'static str, &'static str> = {
         FromIterator::from_iter([("h3", "MyHeading3")].into_iter())
     };
+}
+
+mdx_style!();
+
+#[derive(Properties, PartialEq)]
+struct MyPProps {
+    children: Children,
+}
+
+#[function_component]
+fn MyP(props: &MyPProps) -> Html {
+    html! {
+        <p>{props.children.clone()}</p>
+    }
 }
 
 #[test]
@@ -205,7 +219,7 @@ fn style_h3() {
     dbg_eq(
         mdx! {r#"### 123"#},
         html! {
-            <><h3><strong>{"123"}</strong></h3></>
+            <><MyHeading3>{"123"}</MyHeading3></>
         },
     )
 }
