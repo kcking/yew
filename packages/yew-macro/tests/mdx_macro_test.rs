@@ -7,7 +7,7 @@ lazy_static::lazy_static! {
     };
 }
 
-mdx_style!();
+mdx_style!(h3: MyHeading3,);
 
 #[derive(Properties, PartialEq)]
 struct MyPProps {
