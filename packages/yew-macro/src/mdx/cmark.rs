@@ -32,11 +32,16 @@ enum Side {
     Start,
     End,
 }
+
+fn dyn_tag_name_opt(tag: &str) -> Option<String> {
+    GLOBAL_STYLE.lock().unwrap().get(tag).map(Into::into)
+}
+fn dyn_tag_name(tag: &str) -> String {
+    dyn_tag_name_opt(tag).unwrap_or(tag.into())
+}
+
 fn dyn_tag(tag: &str, side: Side) -> TokenStream {
-    let tag = match GLOBAL_STYLE.lock().unwrap().get(tag.into()) {
-        Some(tag) => tag.clone(),
-        None => tag.into(),
-    };
+    let tag = dyn_tag_name_opt(tag).unwrap_or(tag.into());
     (match side {
         Side::Start => "<",
         Side::End => "</",
@@ -46,6 +51,20 @@ fn dyn_tag(tag: &str, side: Side) -> TokenStream {
         + ">")
         .parse()
         .unwrap()
+}
+
+fn dyn_tag_opt(tag: &str, side: Side) -> Option<TokenStream> {
+    GLOBAL_STYLE.lock().unwrap().get(tag.into()).map(|tag| {
+        (match side {
+            Side::Start => "<",
+            Side::End => "</",
+        }
+        .to_string()
+            + &tag
+            + ">")
+            .parse()
+            .unwrap()
+    })
 }
 
 pub fn parse_commonmark(input: &str) -> TokenStream {
@@ -60,59 +79,80 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
             Event::Start(tag) => match tag {
                 Tag::Paragraph => dyn_tag("p", Side::Start),
                 Tag::Heading(lvl, ..) => dyn_tag(&lvl.to_string(), Side::Start),
-                Tag::BlockQuote => "<blockquote>".parse().unwrap(),
+                Tag::BlockQuote => dyn_tag("blockquote", Side::Start),
                 Tag::CodeBlock(kind) => match kind {
                     pulldown_cmark::CodeBlockKind::Indented => {
-                        format!("<pre><code>").parse().unwrap()
+                        dyn_tag_opt("codeblock", Side::Start)
+                            .unwrap_or("<pre><code>".parse().unwrap())
                     }
                     pulldown_cmark::CodeBlockKind::Fenced(lang) => {
-                        format!(r#"<pre><code class="language-{}">"#, lang)
-                            .parse()
-                            .unwrap()
+                        dyn_tag_opt("codeblock", Side::Start).unwrap_or(
+                            format!("<pre><code class=\"language-{}\">", lang)
+                                .parse()
+                                .unwrap(),
+                        )
                     }
                 },
-                Tag::List(_) => "<ul>".parse().unwrap(),
-                Tag::Item => "<li>".parse().unwrap(),
+                Tag::List(_) => dyn_tag("ul", Side::Start),
+                Tag::Item => dyn_tag("li", Side::Start),
                 Tag::FootnoteDefinition(_) => todo!(),
                 Tag::Table(_) => todo!(),
                 Tag::TableHead => todo!(),
                 Tag::TableRow => todo!(),
                 Tag::TableCell => todo!(),
-                Tag::Emphasis => "<em>".parse().unwrap(),
-                Tag::Strong => "<strong>".parse().unwrap(),
-                Tag::Strikethrough => "<s>".parse().unwrap(),
-                Tag::Link(_type, url, _title) => format!("<a href=\"{}\">", url).parse().unwrap(),
-                Tag::Image(_type, url, title) => format!(r#"<img src="{url}" title="{title}"/>"#)
-                    .parse()
-                    .unwrap(),
+                Tag::Emphasis => dyn_tag("em", Side::Start),
+                Tag::Strong => dyn_tag("strong", Side::Start),
+                Tag::Strikethrough => dyn_tag("s", Side::Start),
+                Tag::Link(_type, url, _title) => format!(
+                    "<{} href=\"{}\">",
+                    // TODO: fix this to not include angle brackets
+                    dyn_tag_name("a").to_string(),
+                    url
+                )
+                .parse()
+                .unwrap(),
+                Tag::Image(_type, url, title) => {
+                    let tag = dyn_tag_name("url");
+                    format!(r#"<{tag} src="{url}" title="{title}"/>"#)
+                        .parse()
+                        .unwrap()
+                }
             },
             Event::End(tag) => match tag {
                 Tag::Paragraph => dyn_tag("p", Side::End),
                 Tag::Heading(lvl, ..) => dyn_tag(&lvl.to_string(), Side::End),
-                Tag::BlockQuote => "</blockquote>".parse().unwrap(),
-                Tag::CodeBlock(_) => format!("</code></pre>").parse().unwrap(),
-                Tag::List(_) => "</ul>".parse().unwrap(),
-                Tag::Item => "</li>".parse().unwrap(),
+                Tag::BlockQuote => dyn_tag("blockquote", Side::End),
+                Tag::CodeBlock(_) => dyn_tag_opt("codeblock", Side::End)
+                    .unwrap_or(format!("</code></pre>").parse().unwrap()),
+                Tag::List(_) => dyn_tag("ul", Side::End),
+                Tag::Item => dyn_tag("li", Side::End),
                 Tag::FootnoteDefinition(_) => todo!(),
                 Tag::Table(_) => todo!(),
                 Tag::TableHead => todo!(),
                 Tag::TableRow => todo!(),
                 Tag::TableCell => todo!(),
-                Tag::Emphasis => "</em>".parse().unwrap(),
-                Tag::Strong => "</strong>".parse().unwrap(),
-                Tag::Strikethrough => "</s>".parse().unwrap(),
-                Tag::Link(_type, _url, _title) => "</a>".parse().unwrap(),
+                Tag::Emphasis => dyn_tag("em", Side::End),
+                Tag::Strong => dyn_tag("strong", Side::End),
+                Tag::Strikethrough => dyn_tag("s", Side::End),
+                Tag::Link(_type, _url, _title) => dyn_tag("a", Side::End),
                 Tag::Image(_type, _url, _title) => "".parse().unwrap(),
             },
             Event::Text(txt) => format!("{{r###\"{}\"###}}", txt).parse().unwrap(),
-            Event::Code(code) => format!("<code>{{r###\"{}\"###}}</code>", code)
-                .parse()
-                .unwrap(),
-            Event::Rule => "<hr />".parse().unwrap(),
+            Event::Code(code) => {
+                let tag = dyn_tag_name("code");
+                format!("<{tag}>{{r###\"{}\"###}}</{tag}>", code)
+                    .parse()
+                    .unwrap()
+            }
+            Event::Rule => {
+                let tag = dyn_tag_name("hr");
+                format!("<{tag} />").parse().unwrap()
+            }
             Event::SoftBreak => "{{\" \"}}".parse().unwrap(),
             Event::Html(html) => html.parse().unwrap(),
             _ => quote! {}.into(),
         };
+        dbg!(&new_toks);
         toks.extend(new_toks);
     });
 
