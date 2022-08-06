@@ -1,6 +1,8 @@
 use yew::{Children, Html};
 use yew_macro::{function_component, html, mdx, mdx_style, Properties};
 
+//  h3 used for testing styling
+#[cfg(test)]
 mdx_style!(h3: MyHeading3,);
 
 #[derive(Properties, PartialEq)]
@@ -194,7 +196,7 @@ fn TestComponent() -> Html {
 }
 
 #[derive(PartialEq, Properties)]
-pub struct MyHeading3Props {
+struct MyHeading3Props {
     pub children: Children,
 }
 #[function_component]
