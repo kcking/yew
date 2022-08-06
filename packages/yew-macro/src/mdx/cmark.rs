@@ -152,7 +152,6 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
             Event::Html(html) => html.parse().unwrap(),
             _ => quote! {}.into(),
         };
-        dbg!(&new_toks);
         toks.extend(new_toks);
     });
 
