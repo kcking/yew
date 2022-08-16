@@ -81,10 +81,13 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
                 Tag::Heading(lvl, ..) => dyn_tag(&lvl.to_string(), Side::Start),
                 Tag::BlockQuote => dyn_tag("blockquote", Side::Start),
                 Tag::CodeBlock(kind) => match kind {
-                    pulldown_cmark::CodeBlockKind::Indented => {
-                        dyn_tag_opt("codeblock", Side::Start)
-                            .unwrap_or("<pre><code>".parse().unwrap())
-                    }
+                    pulldown_cmark::CodeBlockKind::Indented => FromIterator::from_iter(
+                        [
+                            dyn_tag("pre", Side::Start),
+                            "<code>".parse::<TokenStream>().unwrap(),
+                        ]
+                        .into_iter(),
+                    ),
                     pulldown_cmark::CodeBlockKind::Fenced(lang) => {
                         let tags = FromIterator::from_iter(
                             [
