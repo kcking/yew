@@ -86,11 +86,17 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
                             .unwrap_or("<pre><code>".parse().unwrap())
                     }
                     pulldown_cmark::CodeBlockKind::Fenced(lang) => {
-                        dyn_tag_opt("codeblock", Side::Start).unwrap_or(
-                            format!("<pre><code class=\"language-{}\">", lang)
-                                .parse()
-                                .unwrap(),
-                        )
+                        let tags = FromIterator::from_iter(
+                            [
+                                dyn_tag("pre", Side::Start),
+                                format!("<code class=\"language-{}\">", lang)
+                                    .parse::<TokenStream>()
+                                    .unwrap(),
+                            ]
+                            .into_iter(),
+                        );
+
+                        tags
                     }
                 },
                 Tag::List(_) => dyn_tag("ul", Side::Start),
@@ -103,14 +109,11 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
                 Tag::Emphasis => dyn_tag("em", Side::Start),
                 Tag::Strong => dyn_tag("strong", Side::Start),
                 Tag::Strikethrough => dyn_tag("s", Side::Start),
-                Tag::Link(_type, url, _title) => format!(
-                    "<{} href=\"{}\">",
-                    // TODO: fix this to not include angle brackets
-                    dyn_tag_name("a").to_string(),
-                    url
-                )
-                .parse()
-                .unwrap(),
+                Tag::Link(_type, url, _title) => {
+                    format!("<{} href=\"{}\">", dyn_tag_name("a").to_string(), url)
+                        .parse()
+                        .unwrap()
+                }
                 Tag::Image(_type, url, title) => {
                     let tag = dyn_tag_name("url");
                     format!(r#"<{tag} src="{url}" title="{title}"/>"#)
@@ -122,8 +125,9 @@ pub fn parse_commonmark(input: &str) -> TokenStream {
                 Tag::Paragraph => dyn_tag("p", Side::End),
                 Tag::Heading(lvl, ..) => dyn_tag(&lvl.to_string(), Side::End),
                 Tag::BlockQuote => dyn_tag("blockquote", Side::End),
-                Tag::CodeBlock(_) => dyn_tag_opt("codeblock", Side::End)
-                    .unwrap_or(format!("</code></pre>").parse().unwrap()),
+                Tag::CodeBlock(_) => {
+                    FromIterator::from_iter(["</code>".parse().unwrap(), dyn_tag("pre", Side::End)])
+                }
                 Tag::List(_) => dyn_tag("ul", Side::End),
                 Tag::Item => dyn_tag("li", Side::End),
                 Tag::FootnoteDefinition(_) => todo!(),

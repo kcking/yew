@@ -45,11 +45,6 @@ pub fn mdx(input: TokenStream) -> TokenStream {
                     .unwrap()
                     .strip_suffix("\"#")
                     .unwrap();
-                // let parsed = parse_mdx().parse(mdx_str).unwrap();
-                // // dbg!(&parsed);
-                // let evaled = parsed.eval_outer();
-                // // dbg!(&evaled.to_string());
-                // evaled
                 parse_commonmark(&mdx_str)
             }
             _ => panic!("mdx! expected literal"),
