@@ -53,3 +53,21 @@ pub fn mdx(input: TokenStream) -> TokenStream {
 
     parsed
 }
+
+pub fn include_mdx(input: TokenStream) -> TokenStream {
+    let file_path: std::path::PathBuf = input
+        .to_string()
+        .trim_start_matches('"')
+        .trim_end_matches('"')
+        .parse()
+        .unwrap();
+
+    let full_path = std::env::var("CARGO_MANIFEST_DIR")
+        .unwrap()
+        .parse::<std::path::PathBuf>()
+        .unwrap()
+        .join(file_path);
+    let contents = std::fs::read_to_string(full_path).unwrap();
+
+    parse_commonmark(&contents)
+}

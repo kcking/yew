@@ -63,7 +63,6 @@ use derive_props::DerivePropsInput;
 use function_component::{function_component_impl, FunctionComponent, FunctionComponentName};
 use hook::{hook_impl, HookFn};
 use html_tree::{HtmlRoot, HtmlRootVNode};
-use mdx::*;
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use syn::buffer::Cursor;
@@ -192,4 +191,9 @@ pub fn mdx(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn mdx_style(input: TokenStream) -> TokenStream {
     mdx::mdx_style(input)
+}
+
+#[proc_macro]
+pub fn include_mdx(input: TokenStream) -> TokenStream {
+    html(mdx::include_mdx(input))
 }
