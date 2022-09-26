@@ -67,7 +67,9 @@ pub fn include_mdx(input: TokenStream) -> TokenStream {
         .parse::<std::path::PathBuf>()
         .unwrap()
         .join(file_path);
-    let contents = std::fs::read_to_string(full_path).unwrap();
+    let contents = std::fs::read_to_string(full_path)
+        .unwrap()
+        .replace("\r", "");
 
     parse_commonmark(&contents)
 }
